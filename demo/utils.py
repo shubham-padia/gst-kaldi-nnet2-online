@@ -1,9 +1,10 @@
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 def get_text_view_and_buffer():
     text = Gtk.TextView()
     text_buffer = text.get_buffer()
     text.set_wrap_mode(Gtk.WrapMode.WORD)
+    text.modify_font(Pango.FontDescription('Ubuntu 20'))
 
     return text, text_buffer
 

@@ -7,12 +7,12 @@ Gst.init(None)
 Gdk.threads_init()
 
 class TranscriptionView:
-    def __init__(self, name, src_type, src_name):
+    def __init__(self, name, src_type, src_name, should_set_device_id):
         self.gst = Gst
         self.gdk = Gdk
         self.init_gui()
         self.prev_hyp_len = 0
-        self.asr = self.init_gst(name, self.textbuf, self.partial_tag, src_type, src_name)
+        self.asr = self.init_gst(name, self.textbuf, self.partial_tag, src_type, src_name, should_set_device_id)
 
     def init_gui(self):
         self.scrolled_window = get_scrolled_window()
@@ -24,10 +24,11 @@ class TranscriptionView:
         self.partial_tag = self.textbuf.create_tag(
             tag_name="partial_tag", foreground="red")
 
-    def init_gst(self, name, text_buffer, partial_tag, src_type, src_name):
+    def init_gst(self, name, text_buffer, partial_tag, src_type, src_name, should_set_device_id):
         """Initialize the speech components"""
         pulsesrc = self.gst.ElementFactory.make(src_type, src_type)
-        pulsesrc.set_property("device", src_name)
+        if should_set_device_id:
+            pulsesrc.set_property("device", src_name)
         if pulsesrc == None:
             print >> sys.stderr, "Error loading pulsesrc GST plugin. You probably need the gstreamer1.0-pulseaudio package"
             sys.exit()
