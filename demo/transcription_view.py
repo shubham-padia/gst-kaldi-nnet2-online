@@ -26,7 +26,8 @@ class TranscriptionView:
 
     def init_gst(self, name, text_buffer, partial_tag, src_type, src_name):
         """Initialize the speech components"""
-        pulsesrc = self.gst.ElementFactory.make(src_type, src_name)
+        pulsesrc = self.gst.ElementFactory.make(src_type, src_type)
+        pulsesrc.set_property("device", src_name)
         if pulsesrc == None:
             print >> sys.stderr, "Error loading pulsesrc GST plugin. You probably need the gstreamer1.0-pulseaudio package"
             sys.exit()
