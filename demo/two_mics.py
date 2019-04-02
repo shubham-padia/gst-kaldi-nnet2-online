@@ -36,13 +36,14 @@ def get_scrolled_window():
 
     return scrolled_window
 
+
 class DemoApp(object):
     """GStreamer/Kaldi Demo Application"""
 
     def __init__(self):
         """Initialize a DemoApp object"""
         self.init_gui()
-        self.init_gst()
+        self.asr = self.init_gst()
 
     def init_gui(self):
         """Initialize the GUI components"""
@@ -83,11 +84,6 @@ class DemoApp(object):
         self.tag_table = Gtk.TextTagTable()
         self.tag_table.add(self.tag)
 
-        # A list to hold our active tags
-        self.tags_on = []
-        # Our Bold tag.
-        # self.tag_bold = self.textbuf.create_tag("bold", weight=Pango.WEIGHT_BOLD)
-
         # Button
         self.button = Gtk.Button("Speak")
         self.button.connect('clicked', self.button_clicked)
@@ -106,6 +102,9 @@ class DemoApp(object):
         vbox.pack_start(self.buttonClr, False, True, 1)
         vbox.pack_start(grid, False, True, 1)
 
+        self.partial_tag = self.textbuf.create_tag(
+            tag_name="partial_tag", foreground="red")
+
         self.window.add(vbox)
         self.window.show_all()
 
@@ -114,42 +113,41 @@ class DemoApp(object):
 
     def init_gst(self):
         """Initialize the speech components"""
-        self.pulsesrc = Gst.ElementFactory.make("pulsesrc", "pulsesrc")
-        if self.pulsesrc == None:
+        pulsesrc = Gst.ElementFactory.make("pulsesrc", "pulsesrc")
+        if pulsesrc == None:
             print >> sys.stderr, "Error loading pulsesrc GST plugin. You probably need the gstreamer1.0-pulseaudio package"
             sys.exit()
-        self.audioconvert = Gst.ElementFactory.make(
+        audioconvert = Gst.ElementFactory.make(
             "audioconvert", "audioconvert")
-        self.audioresample = Gst.ElementFactory.make(
+        audioresample = Gst.ElementFactory.make(
             "audioresample", "audioresample")
-        self.asr = Gst.ElementFactory.make("kaldinnet2onlinedecoder", "asr")
-        self.fakesink = Gst.ElementFactory.make("fakesink", "fakesink")
+        asr = Gst.ElementFactory.make("kaldinnet2onlinedecoder", "asr")
+        fakesink = Gst.ElementFactory.make("fakesink", "fakesink")
         self.prev_hyp_len = 0
-        self.partial_tag = self.textbuf.create_tag(
-            tag_name="partial_tag", foreground="red")
+
         self.textbuf.apply_tag(
             self.partial_tag, self.textbuf.get_end_iter(), self.textbuf.get_end_iter())
 
-        if self.asr:
+        if asr:
             model_file = "models/final.mdl"
             if not os.path.isfile(model_file):
                 print >> sys.stderr, "Models not downloaded? Run prepare-models.sh first!"
                 sys.exit(1)
-            self.asr.set_property("fst", "models/HCLG.fst")
-            self.asr.set_property("model", model_file)
-            self.asr.set_property("word-syms", "models/words.txt")
-            self.asr.set_property("feature-type", "mfcc")
-            self.asr.set_property("mfcc-config", "conf/mfcc.conf")
-            self.asr.set_property(
+            asr.set_property("fst", "models/HCLG.fst")
+            asr.set_property("model", model_file)
+            asr.set_property("word-syms", "models/words.txt")
+            asr.set_property("feature-type", "mfcc")
+            asr.set_property("mfcc-config", "conf/mfcc.conf")
+            asr.set_property(
                 "ivector-extraction-config", "conf/ivector_extractor.fixed.conf")
-            self.asr.set_property("max-active", 7000)
-            self.asr.set_property("beam", 10.0)
-            self.asr.set_property("lattice-beam", 6.0)
-            self.asr.set_property("do-endpointing", True)
-            self.asr.set_property(
+            asr.set_property("max-active", 7000)
+            asr.set_property("beam", 10.0)
+            asr.set_property("lattice-beam", 6.0)
+            asr.set_property("do-endpointing", True)
+            asr.set_property(
                 "endpoint-silence-phones", "1:2:3:4:5:6:7:8:9:10")
-            self.asr.set_property("use-threaded-decoder", False)
-            self.asr.set_property("chunk-length-in-secs", 0.2)
+            asr.set_property("use-threaded-decoder", False)
+            asr.set_property("chunk-length-in-secs", 0.2)
         else:
             print >> sys.stderr, "Couldn't create the kaldinnet2onlinedecoder element. "
             if os.environ.has_key("GST_PLUGIN_PATH"):
@@ -160,19 +158,21 @@ class DemoApp(object):
             sys.exit()
 
         # initially silence the decoder
-        self.asr.set_property("silent", True)
+        asr.set_property("silent", True)
 
-        self.pipeline = Gst.Pipeline()
-        for element in [self.pulsesrc, self.audioconvert, self.audioresample, self.asr, self.fakesink]:
-            self.pipeline.add(element)
-        self.pulsesrc.link(self.audioconvert)
-        self.audioconvert.link(self.audioresample)
-        self.audioresample.link(self.asr)
-        self.asr.link(self.fakesink)
+        pipeline = Gst.Pipeline()
+        for element in [pulsesrc, audioconvert, audioresample, asr, fakesink]:
+            pipeline.add(element)
+        pulsesrc.link(audioconvert)
+        audioconvert.link(audioresample)
+        audioresample.link(asr)
+        asr.link(fakesink)
 
-        self.asr.connect('partial-result', self._on_partial_result)
-        self.asr.connect('final-result', self._on_final_result)
-        self.pipeline.set_state(Gst.State.PLAYING)
+        asr.connect('partial-result', self._on_partial_result)
+        asr.connect('final-result', self._on_final_result)
+        pipeline.set_state(Gst.State.PLAYING)
+
+        return asr
 
     def _on_partial_result(self, asr, hyp):
         """Delete any previous selection, insert text and select it."""
@@ -192,12 +192,7 @@ class DemoApp(object):
         self.textbuf.apply_tag(
             self.partial_tag, current_hyp_len_start, self.textbuf.get_end_iter())
         self.prev_hyp_len = current_hyp_len
-        # self.textbuf.apply_tag()
 
-        # iter = self.textbuf.get_iter_at_mark(ins)
-        # print(hyp)
-        # iter.backward_chars(len(hyp))
-        # self.textbuf.move_mark(ins, iter)
         self.textbuf.end_user_action()
         Gdk.threads_leave()
 
