@@ -43,7 +43,7 @@ class DemoApp(object):
     def __init__(self):
         """Initialize a DemoApp object"""
         self.init_gui()
-        self.asr = self.init_gst()
+        self.asr = self.init_gst(self.textbuf, self.partial_tag)
 
     def init_gui(self):
         """Initialize the GUI components"""
@@ -104,6 +104,8 @@ class DemoApp(object):
 
         self.partial_tag = self.textbuf.create_tag(
             tag_name="partial_tag", foreground="red")
+        self.gg_partial_tag = self.ggtextbuf.create_tag(
+            tag_name="partial_tag", foreground="red")
 
         self.window.add(vbox)
         self.window.show_all()
@@ -111,7 +113,7 @@ class DemoApp(object):
     def quit(self, window):
         Gtk.main_quit()
 
-    def init_gst(self):
+    def init_gst(self, text_buffer, partial_tag):
         """Initialize the speech components"""
         pulsesrc = Gst.ElementFactory.make("pulsesrc", "pulsesrc")
         if pulsesrc == None:
@@ -125,8 +127,8 @@ class DemoApp(object):
         fakesink = Gst.ElementFactory.make("fakesink", "fakesink")
         self.prev_hyp_len = 0
 
-        self.textbuf.apply_tag(
-            self.partial_tag, self.textbuf.get_end_iter(), self.textbuf.get_end_iter())
+        text_buffer.apply_tag(
+            partial_tag, text_buffer.get_end_iter(), text_buffer.get_end_iter())
 
         if asr:
             model_file = "models/final.mdl"
@@ -168,53 +170,53 @@ class DemoApp(object):
         audioresample.link(asr)
         asr.link(fakesink)
 
-        asr.connect('partial-result', self._on_partial_result)
-        asr.connect('final-result', self._on_final_result)
+        asr.connect('partial-result', self._on_partial_result, text_buffer)
+        asr.connect('final-result', self._on_final_result, text_buffer)
         pipeline.set_state(Gst.State.PLAYING)
 
         return asr
 
-    def _on_partial_result(self, asr, hyp):
+    def _on_partial_result(self, asr, hyp, text_buffer):
         """Delete any previous selection, insert text and select it."""
         Gdk.threads_enter()
         # All this stuff appears as one single action
-        self.textbuf.begin_user_action()
-        end_iter = self.textbuf.get_end_iter()
-        prev_hyp_start = self.textbuf.get_end_iter()
+        text_buffer.begin_user_action()
+        end_iter = text_buffer.get_end_iter()
+        prev_hyp_start = text_buffer.get_end_iter()
         prev_hyp_start.backward_chars(self.prev_hyp_len)
-        self.textbuf.remove_tag(self.partial_tag, prev_hyp_start, end_iter)
-        self.textbuf.delete(prev_hyp_start, end_iter)
+        text_buffer.remove_tag(self.partial_tag, prev_hyp_start, end_iter)
+        text_buffer.delete(prev_hyp_start, end_iter)
 
         current_hyp_len = len(hyp)
-        self.textbuf.insert(self.textbuf.get_end_iter(), hyp)
-        current_hyp_len_start = self.textbuf.get_end_iter()
+        text_buffer.insert(text_buffer.get_end_iter(), hyp)
+        current_hyp_len_start = text_buffer.get_end_iter()
         current_hyp_len_start.backward_chars(current_hyp_len)
-        self.textbuf.apply_tag(
-            self.partial_tag, current_hyp_len_start, self.textbuf.get_end_iter())
+        text_buffer.apply_tag(
+            self.partial_tag, current_hyp_len_start, text_buffer.get_end_iter())
         self.prev_hyp_len = current_hyp_len
 
-        self.textbuf.end_user_action()
+        text_buffer.end_user_action()
         Gdk.threads_leave()
 
-    def _on_final_result(self, asr, hyp):
+    def _on_final_result(self, asr, hyp, text_buffer):
         Gdk.threads_enter()
         """Insert the final result."""
         # All this stuff appears as one single action
         print(hyp)
-        self.textbuf.begin_user_action()
-        end_iter = self.textbuf.get_end_iter()
-        prev_hyp_start = self.textbuf.get_end_iter()
+        text_buffer.begin_user_action()
+        end_iter = text_buffer.get_end_iter()
+        prev_hyp_start = text_buffer.get_end_iter()
         prev_hyp_start.backward_chars(self.prev_hyp_len)
-        self.textbuf.delete(prev_hyp_start, end_iter)
+        text_buffer.delete(prev_hyp_start, end_iter)
 
-        new_end_iter = self.textbuf.get_end_iter()
-        self.textbuf.insert(new_end_iter, hyp)
+        new_end_iter = text_buffer.get_end_iter()
+        text_buffer.insert(new_end_iter, hyp)
         # print(hyp)
         if (len(hyp) > 0):
-            self.textbuf.insert(new_end_iter, " ")
+            text_buffer.insert(new_end_iter, " ")
 
         self.prev_hyp_len = 0
-        self.textbuf.end_user_action()
+        text_buffer.end_user_action()
         Gdk.threads_leave()
 
     def button_clicked(self, button):
