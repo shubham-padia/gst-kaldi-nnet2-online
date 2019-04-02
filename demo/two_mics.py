@@ -23,8 +23,8 @@ class DemoApp(object):
 
     def __init__(self):
         """Initialize a DemoApp object"""
-        self.transcription_1 = TranscriptionView("asr1")
-        self.transcription_2 = TranscriptionView("asr2")
+        self.transcription_1 = TranscriptionView("asr1", "alsasrc", "hw:2")
+        self.transcription_2 = TranscriptionView("asr2", "alsasrc", "hw:3")
         self.init_gui()
 
     def init_gui(self):
