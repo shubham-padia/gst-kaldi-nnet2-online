@@ -8,11 +8,12 @@ Gdk.threads_init()
 
 class TranscriptionView:
     def __init__(self, name, src_type, src_name, should_set_device_id):
+        self.name = name
         self.gst = Gst
         self.gdk = Gdk
         self.init_gui()
         self.prev_hyp_len = 0
-        self.asr = self.init_gst(name, self.textbuf, self.partial_tag, src_type, src_name, should_set_device_id)
+        self.asr = self.init_gst(self.textbuf, self.partial_tag, src_type, src_name, should_set_device_id)
 
     def init_gui(self):
         self.scrolled_window = get_scrolled_window()
@@ -24,7 +25,7 @@ class TranscriptionView:
         self.partial_tag = self.textbuf.create_tag(
             tag_name="partial_tag", foreground="red")
 
-    def init_gst(self, name, text_buffer, partial_tag, src_type, src_name, should_set_device_id):
+    def init_gst(self, text_buffer, partial_tag, src_type, src_name, should_set_device_id):
         """Initialize the speech components"""
         pulsesrc = self.gst.ElementFactory.make(src_type, src_type)
         if should_set_device_id:
@@ -36,7 +37,7 @@ class TranscriptionView:
             "audioconvert", "audioconvert")
         audioresample = self.gst.ElementFactory.make(
             "audioresample", "audioresample")
-        asr = self.gst.ElementFactory.make("kaldinnet2onlinedecoder", name)
+        asr = self.gst.ElementFactory.make("kaldinnet2onlinedecoder", self.name)
         fakesink = self.gst.ElementFactory.make("fakesink", "fakesink")
 
         text_buffer.apply_tag(
@@ -82,13 +83,13 @@ class TranscriptionView:
         audioresample.link(asr)
         asr.link(fakesink)
 
-        asr.connect('partial-result', self._on_partial_result, text_buffer, name)
+        asr.connect('partial-result', self._on_partial_result, text_buffer)
         asr.connect('final-result', self._on_final_result, text_buffer)
         pipeline.set_state(self.gst.State.PLAYING)
 
         return asr
 
-    def _on_partial_result(self, asr, hyp, text_buffer, name):
+    def _on_partial_result(self, asr, hyp, text_buffer):
         """Delete any previous selection, insert text and select it."""
         self.gdk.threads_enter()
         # All this stuff appears as one single action
@@ -99,8 +100,9 @@ class TranscriptionView:
         text_buffer.remove_tag(self.partial_tag, prev_hyp_start, end_iter)
         text_buffer.delete(prev_hyp_start, end_iter)
 
-        current_hyp_len = len(hyp)
-        text_buffer.insert(text_buffer.get_end_iter(), hyp)
+        text_to_insert = "%s: %s\n" % (self.name, hyp)
+        current_hyp_len = len(text_to_insert)
+        text_buffer.insert(text_buffer.get_end_iter(), text_to_insert)
         current_hyp_len_start = text_buffer.get_end_iter()
         current_hyp_len_start.backward_chars(current_hyp_len)
         text_buffer.apply_tag(
@@ -121,9 +123,10 @@ class TranscriptionView:
         text_buffer.delete(prev_hyp_start, end_iter)
 
         new_end_iter = text_buffer.get_end_iter()
-        text_buffer.insert(new_end_iter, hyp)
+        text_to_insert = "%s: %s" % (self.name, hyp)
+        text_buffer.insert(new_end_iter, text_to_insert)
         if (len(hyp) > 0):
-            text_buffer.insert(new_end_iter, " ")
+            text_buffer.insert(new_end_iter, "\n")
 
         self.prev_hyp_len = 0
         text_buffer.end_user_action()
