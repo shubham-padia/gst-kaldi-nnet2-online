@@ -1,0 +1,13 @@
+MODEL_FILE = models/final.mdl
+FST = models/HCLG.fst
+WORD_SYMS = models/words.txt
+FEATURE_TYPE = mfcc
+MFCC_CONFIG = conf/mfcc.conf
+IVECTOR_EXTRACTION_CONFIG = conf/ivector_extractor.fixed.conf
+MAX_ACTIVE = 7000
+BEAM = 10.0
+LATTICE_BEAM = 6.0
+DO_ENDPOINTING = True
+ENDPOINT_SILENCE_OPTIONS = 1:2:3:4:5:6:7:8:9:10
+USE_THREADED = False
+CHUNK_LENGTH_IN_SECS = 0.2

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 #
 # Copyright (c) 2013 Tanel Alumae
 # Copyright (c) 2008 Carnegie Mellon University.
@@ -13,10 +14,10 @@ import sys
 import os
 import gi
 import copy
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gst', '1.0')
-GObject.threads_init()
-
+# -*- coding: UTF-8 -*-ire_version('Gtk', '3.0')
+# -*- coding: UTF-8 -*-ire_version('Gst', '1.0')
+# -*- coding: UTF-8 -*-.threads_init()
+# -*- coding: UTF-8 -*-
 
 class DemoApp(object):
     """GStreamer/Kaldi Demo Application"""

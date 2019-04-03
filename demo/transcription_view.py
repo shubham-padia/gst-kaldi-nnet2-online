@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from utils import get_text_view_and_buffer, get_scrolled_window
+from utils import get_text_view_and_buffer, get_scrolled_window, get_properties
 import os
 import sys
 from gi.repository import Gtk, Gst, Gdk
@@ -47,25 +47,27 @@ class TranscriptionView:
             partial_tag, text_buffer.get_end_iter(), text_buffer.get_end_iter())
 
         if asr:
-            model_file = "models/final.mdl"
+            properties = get_properties()
+
+            model_file = properties['MODEL_FILE']
             if not os.path.isfile(model_file):
                 print >> sys.stderr, "Models not downloaded? Run prepare-models.sh first!"
                 sys.exit(1)
-            asr.set_property("fst", "models/HCLG.fst")
+            asr.set_property("fst", properties['FST'])
             asr.set_property("model", model_file)
-            asr.set_property("word-syms", "models/words.txt")
-            asr.set_property("feature-type", "mfcc")
-            asr.set_property("mfcc-config", "conf/mfcc.conf")
+            asr.set_property("word-syms", properties['WORD_SYMS'])
+            asr.set_property("feature-type", properties['FEATURE_TYPE'])
+            asr.set_property("mfcc-config", properties['MFCC_CONFIG'])
             asr.set_property(
-                "ivector-extraction-config", "conf/ivector_extractor.fixed.conf")
-            asr.set_property("max-active", 7000)
-            asr.set_property("beam", 10.0)
-            asr.set_property("lattice-beam", 6.0)
-            asr.set_property("do-endpointing", True)
+                "ivector-extraction-config", properties['IVECTOR_EXTRACTION_CONFIG'])
+            asr.set_property("max-active", properties['MAX_ACTIVE'])
+            asr.set_property("beam", properties['BEAM'])
+            asr.set_property("lattice-beam", properties['LATTICE_BEAM'])
+            asr.set_property("do-endpointing", properties['DO_ENDPOINTING'])
             asr.set_property(
-                "endpoint-silence-phones", "1:2:3:4:5:6:7:8:9:10")
-            asr.set_property("use-threaded-decoder", False)
-            asr.set_property("chunk-length-in-secs", 0.2)
+                "endpoint-silence-phones", properties['ENDPOINT_SILENCE_PHONES'])
+            asr.set_property("use-threaded-decoder", properties['USE_THREADED_DECODER'])
+            asr.set_property("chunk-length-in-secs", properties['CHUNK_LENGTH_IN_SECS'])
         else:
             print >> sys.stderr, "Couldn't create the kaldinnet2onlinedecoder element. "
             if os.environ.has_key("GST_PLUGIN_PATH"):
