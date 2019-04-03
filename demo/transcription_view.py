@@ -7,15 +7,15 @@ Gst.init(None)
 Gdk.threads_init()
 
 class TranscriptionView:
-    def __init__(self, name, src_type, src_name, should_set_device_id):
+    def __init__(self, name, src_type, src_name, should_set_device_id, name_color):
         self.name = name
         self.gst = Gst
         self.gdk = Gdk
-        self.init_gui()
+        self.init_gui(name_color)
         self.prev_hyp_len = 0
         self.asr = self.init_gst(self.textbuf, self.partial_tag, src_type, src_name, should_set_device_id)
 
-    def init_gui(self):
+    def init_gui(self, name_color):
         self.scrolled_window = get_scrolled_window()
         self.text, self.textbuf = get_text_view_and_buffer()
         self.scrolled_window.add(self.text)
@@ -24,6 +24,8 @@ class TranscriptionView:
         self.frame.add(self.scrolled_window)
         self.partial_tag = self.textbuf.create_tag(
             tag_name="partial_tag", foreground="red")
+        self.name_tag = self.textbuf.create_tag(
+            tag_name="name", foreground=name_color)
 
     def init_gst(self, text_buffer, partial_tag, src_type, src_name, should_set_device_id):
         """Initialize the speech components"""
@@ -101,14 +103,21 @@ class TranscriptionView:
         text_buffer.delete(prev_hyp_start, end_iter)
 
         text_to_insert = "%s: %s\n" % (self.name, hyp)
+        name_len = len(self.name) + 2                       # 2 added for `: `
         current_hyp_len = len(text_to_insert)
         text_buffer.insert(text_buffer.get_end_iter(), text_to_insert)
+        
         current_hyp_len_start = text_buffer.get_end_iter()
-        current_hyp_len_start.backward_chars(current_hyp_len)
+        current_hyp_len_start.backward_chars(current_hyp_len - name_len)
         text_buffer.apply_tag(
             self.partial_tag, current_hyp_len_start, text_buffer.get_end_iter())
-        self.prev_hyp_len = current_hyp_len
 
+        name_start = text_buffer.get_end_iter()
+        name_start.backward_chars(current_hyp_len)
+        text_buffer.apply_tag(
+            self.name_tag, name_start, current_hyp_len_start)
+
+        self.prev_hyp_len = current_hyp_len
         text_buffer.end_user_action()
         self.gdk.threads_leave()
 
@@ -121,12 +130,19 @@ class TranscriptionView:
         prev_hyp_start = text_buffer.get_end_iter()
         prev_hyp_start.backward_chars(self.prev_hyp_len)
         text_buffer.delete(prev_hyp_start, end_iter)
-
+        
         new_end_iter = text_buffer.get_end_iter()
-        text_to_insert = "%s: %s" % (self.name, hyp)
-        text_buffer.insert(new_end_iter, text_to_insert)
-        if (len(hyp) > 0):
-            text_buffer.insert(new_end_iter, "\n")
+        text_to_insert = "%s: %s\n" % (self.name, hyp)
+        name_len = len(self.name) + 2                       # 2 added for `: `
+        current_hyp_len = len(text_to_insert)
+        text_buffer.insert(text_buffer.get_end_iter(), text_to_insert)
+        
+        current_hyp_len_start = text_buffer.get_end_iter()
+        current_hyp_len_start.backward_chars(current_hyp_len - name_len)
+        name_start = text_buffer.get_end_iter()
+        name_start.backward_chars(current_hyp_len)
+        text_buffer.apply_tag(
+            self.name_tag, name_start, current_hyp_len_start)
 
         self.prev_hyp_len = 0
         text_buffer.end_user_action()
