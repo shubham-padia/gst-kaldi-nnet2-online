@@ -118,6 +118,8 @@ class TranscriptionView:
             self.name_tag, name_start, current_hyp_len_start)
 
         self.prev_hyp_len = current_hyp_len
+        self.textbuf.create_mark("scroll", self.textbuf.get_end_iter(), True)
+        self.scroll_to_bottom()
         text_buffer.end_user_action()
         self.gdk.threads_leave()
 
@@ -145,5 +147,25 @@ class TranscriptionView:
             self.name_tag, name_start, current_hyp_len_start)
 
         self.prev_hyp_len = 0
+        self.textbuf.create_mark("scroll", self.textbuf.get_end_iter(), True)
+        self.scroll_to_bottom()
         text_buffer.end_user_action()
         self.gdk.threads_leave()
+
+    def scroll_to_bottom(self):
+        # Get the end iterator
+        itr = self.textbuf.get_end_iter()
+
+        # Move the iterator to the beginning of line, so we don't scroll
+        # in horizontal direction
+        itr.set_line_offset(0)
+
+        # and place the mark at iter. the mark will stay there after we
+        # insert some text at the end because it has right gravity.
+        mark = self.textbuf.get_mark("scroll")
+        self.textbuf.move_mark(mark, itr)
+
+        # Scroll the mark onscreen.
+        self.text.scroll_mark_onscreen(mark)
+
+        return True
