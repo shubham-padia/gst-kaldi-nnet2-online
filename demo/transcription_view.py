@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 from utils import get_text_view_and_buffer, get_scrolled_window
 import os
 import sys
@@ -104,7 +105,7 @@ class TranscriptionView:
 
         text_to_insert = "%s: %s\n" % (self.name, hyp)
         name_len = len(self.name) + 2                       # 2 added for `: `
-        current_hyp_len = len(text_to_insert)
+        current_hyp_len = len(text_to_insert.decode('utf-8'))
         text_buffer.insert(text_buffer.get_end_iter(), text_to_insert)
         
         current_hyp_len_start = text_buffer.get_end_iter()
@@ -136,7 +137,7 @@ class TranscriptionView:
         new_end_iter = text_buffer.get_end_iter()
         text_to_insert = "%s: %s\n" % (self.name, hyp)
         name_len = len(self.name) + 2                       # 2 added for `: `
-        current_hyp_len = len(text_to_insert)
+        current_hyp_len = len(text_to_insert.decode('utf-8'))
         text_buffer.insert(text_buffer.get_end_iter(), text_to_insert)
         
         current_hyp_len_start = text_buffer.get_end_iter()
